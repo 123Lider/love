@@ -12,7 +12,7 @@ input{width:100%;padding:10px;margin:6px 0;border:none;border-radius:8px}
 button{width:100%;padding:10px;background:#ff4081;color:white;border:none;border-radius:10px}
 a{color:#ff4081;cursor:pointer}
 #home{display:none;padding:20px}
-#plus{position:fixed;bottom:20px;right:20px;background:#ff4081;padding:15px;border-radius:50%;font-size:22px}
+#plus{position:fixed;bottom:20px;right:20px;background:#ff4081;padding:15px;border-radius:50%;font-size:22px;cursor:pointer}
 #popup{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#000a;justify-content:center;align-items:center}
 #popupBox{background:#111;padding:20px;border-radius:15px}
 </style>
@@ -24,11 +24,16 @@ a{color:#ff4081;cursor:pointer}
 <div id="loginPage" class="center">
   <div class="box">
     <h2 id="title">Login</h2>
+
     <input id="name" placeholder="Name" style="display:none">
     <input id="email" placeholder="Email">
     <input id="pass" type="password" placeholder="Password">
-    <button onclick="auth()">Login</button>
-    <p>Don't have account? <a onclick="toggle()">Signup</a></p>
+
+    <button id="authBtn" onclick="auth()">Login</button>
+
+    <p id="toggleText">
+      Don't have account? <a onclick="toggle()">Signup</a>
+    </p>
   </div>
 </div>
 
@@ -71,16 +76,11 @@ doc,
 updateDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// 🔥 YOUR FIREBASE
+// 🔥 Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyBvEa0kQxqD6qreUGhYwpXFLh9FQpBKtL0",
   authDomain: "love-animation-69d0b.firebaseapp.com",
-  databaseURL: "https://love-animation-69d0b-default-rtdb.firebaseio.com",
-  projectId: "love-animation-69d0b",
-  storageBucket: "love-animation-69d0b.firebasestorage.app",
-  messagingSenderId: "161341842078",
-  appId: "1:161341842078:web:5eaedb0abefa28d307118f",
-  measurementId: "G-D46BQSJBLP"
+  projectId: "love-animation-69d0b"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -91,95 +91,106 @@ let isLogin = true;
 let user;
 let editId = null;
 
-// toggle
+// toggle login/signup
 window.toggle = ()=>{
-isLogin=!isLogin;
-title.innerText=isLogin?"Login":"Signup";
-name.style.display=isLogin?"none":"block";
-document.querySelector("button").innerText=isLogin?"Login":"Signup";
+  isLogin = !isLogin;
+
+  document.getElementById("title").innerText = isLogin ? "Login" : "Signup";
+  document.getElementById("name").style.display = isLogin ? "none" : "block";
+  document.getElementById("authBtn").innerText = isLogin ? "Login" : "Signup";
+
+  document.getElementById("toggleText").innerHTML =
+    isLogin
+    ? `Don't have account? <a onclick="toggle()">Signup</a>`
+    : `Already have account? <a onclick="toggle()">Login</a>`;
 }
 
 // auth
 window.auth = ()=>{
-const emailVal=email.value;
-const passVal=pass.value;
+  const emailVal = document.getElementById("email").value;
+  const passVal = document.getElementById("pass").value;
 
-if(isLogin){
-signInWithEmailAndPassword(auth,emailVal,passVal)
-.catch(e=>alert(e.message));
-}else{
-createUserWithEmailAndPassword(auth,emailVal,passVal)
-.catch(e=>alert(e.message));
-}
+  if(isLogin){
+    signInWithEmailAndPassword(auth,emailVal,passVal)
+    .catch(e=>alert(e.message));
+  }else{
+    createUserWithEmailAndPassword(auth,emailVal,passVal)
+    .then(()=>alert("Signup success"))
+    .catch(e=>alert(e.message));
+  }
 }
 
 // auth state
 onAuthStateChanged(auth,u=>{
-if(u){
-user=u;
-loginPage.style.display="none";
-home.style.display="block";
-load();
-}
+  if(u){
+    user=u;
+    document.getElementById("loginPage").style.display="none";
+    document.getElementById("home").style.display="block";
+    load();
+  }
 });
 
 // popup
 window.openPopup=()=>{
-popup.style.display="flex";
-editId=null;
-text1.value=""; text2.value=""; text3.value="";
+  document.getElementById("popup").style.display="flex";
+  editId=null;
+  text1.value=""; text2.value=""; text3.value="";
 }
 
-// generate / update
+// generate
 window.generate=async()=>{
-const t1=text1.value;
-const t2=text2.value;
-const t3=text3.value;
+  const t1=text1.value;
+  const t2=text2.value;
+  const t3=text3.value;
 
-if(!t1){ alert("Main text required"); return; }
+  if(!t1){ alert("Main text required"); return; }
 
-const link="https://123lider.github.io/love-animation/index.html?t1="+
-encodeURIComponent(t1)+"&t2="+encodeURIComponent(t2)+"&t3="+encodeURIComponent(t3);
+  const baseURL="https://123lider.github.io/love-animation/index.html";
 
-if(editId){
-await updateDoc(doc(db,"links",editId),{t1,t2,t3,link});
-}else{
-await addDoc(collection(db,"links"),{t1,t2,t3,link,uid:user.uid});
-}
+  const link=baseURL+
+  "?t1="+encodeURIComponent(t1)+
+  "&t2="+encodeURIComponent(t2)+
+  "&t3="+encodeURIComponent(t3);
 
-popup.style.display="none";
+  if(editId){
+    await updateDoc(doc(db,"links",editId),{t1,t2,t3,link});
+  }else{
+    await addDoc(collection(db,"links"),{t1,t2,t3,link,uid:user.uid});
+  }
+
+  document.getElementById("popup").style.display="none";
 }
 
 // edit
 window.edit=(id,t1v,t2v,t3v)=>{
-popup.style.display="flex";
-text1.value=t1v;
-text2.value=t2v;
-text3.value=t3v;
-editId=id;
+  popup.style.display="flex";
+  text1.value=t1v;
+  text2.value=t2v;
+  text3.value=t3v;
+  editId=id;
 }
 
 // load
 function load(){
-const q=query(collection(db,"links"),where("uid","==",user.uid));
+  const q=query(collection(db,"links"),where("uid","==",user.uid));
 
-onSnapshot(q,snap=>{
-list.innerHTML="";
-snap.forEach(d=>{
-const data=d.data();
+  onSnapshot(q,snap=>{
+    list.innerHTML="";
+    snap.forEach(d=>{
+      const data=d.data();
 
-list.innerHTML+=`
-<div style="margin:20px;text-align:center">
-<p>${data.t1}</p>
-<img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${data.link}">
-<br>
-<a href="${data.link}" target="_blank">Open</a>
-<br><br>
-<button onclick="edit('${d.id}','${data.t1}','${data.t2}','${data.t3}')">Edit</button>
-</div>
-`;
-});
-});
+      list.innerHTML+=`
+      <div style="margin:20px;text-align:center">
+      <p>${data.t1}</p>
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${data.link}">
+      <br>
+      <a href="${data.link}" target="_blank">Open</a>
+      <br><br>
+      <button onclick="edit('${d.id}','${data.t1}','${data.t2}','${data.t3}')">Edit</button>
+      </div>
+      `;
+    });
+  });
 }
 </script>
 
